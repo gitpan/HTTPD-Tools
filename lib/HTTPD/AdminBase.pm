@@ -1,4 +1,4 @@
-# $Id: AdminBase.pm,v 1.12 1997/02/10 00:25:15 dougm Exp $
+# $Id: AdminBase.pm,v 1.13 1997/04/30 03:05:38 dougm Exp $
 package HTTPD::AdminBase;
 use Carp ();
 use Fcntl ();
@@ -6,7 +6,7 @@ use Symbol qw(gensym);
 use File::Basename;
 use strict;
 use vars qw($VERSION);
-$VERSION = (qw$Revision: 1.12 $)[1];
+$VERSION = (qw$Revision: 1.13 $)[1];
 
 #generic contructor stuff
 
@@ -248,7 +248,7 @@ sub flags {
     return $flags;
 }
 #fallback, only implemented with DBType => Text
-sub commit {}
+sub commit { (1,''); }
 
 sub baseclass {
     my($self, $n) = @_;

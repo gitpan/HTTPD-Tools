@@ -1,11 +1,11 @@
-# $Id: UserAdmin.pm,v 1.12 1997/02/03 02:42:36 dougm Exp $
+# $Id: UserAdmin.pm,v 1.13 1997/04/30 03:05:38 dougm Exp $
 package HTTPD::UserAdmin;
 use HTTPD::AdminBase ();
 use Carp ();
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(HTTPD::AdminBase);
-$VERSION = (qw$Revision: 1.12 $)[1];
+$VERSION = (qw$Revision: 1.13 $)[1];
 
 sub delete {
     my($self, $user) = @_;
@@ -113,7 +113,7 @@ sub encrypt {
 
 sub salt {
     my($newstyle) = @_;
-    return defined $newstyle ? 
+    return defined($newstyle) && $newstyle ? 
 	join('', "_", randchar(1), "a..", randchar(4)) : randchar(2);
 }
 

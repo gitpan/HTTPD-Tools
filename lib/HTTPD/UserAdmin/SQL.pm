@@ -1,4 +1,4 @@
-# $Id: SQL.pm,v 1.12 1997/02/03 02:42:36 dougm Exp $
+# $Id: SQL.pm,v 1.14 1997/04/30 03:08:25 dougm Exp $
 package HTTPD::UserAdmin::SQL;
 use DBI;
 use Carp ();
@@ -24,6 +24,11 @@ sub new {
     return $self;
 }
 
+sub DESTROY {
+    my($self) = @_;
+    $self->{'_DBH'}->disconnect;
+}
+
 sub db {
     my($self,$db) = @_;
     my $old = $self->{DB};
@@ -35,12 +40,12 @@ sub db {
     }
 
     #we should just be able to say this:
-    #$self->{_DBH} = DBI->connect( @{$self}{ qw(DB  USER  PASSWORD  DRIVER) } );
+    #$self->{_DBH} = DBI->connect( @{$self}{ qw(DB  USER  AUTH  DRIVER) } );
     #this needs to be fixed in a big way
 
     #so we do this hack for now for mSQL, 
     #I'm ignoring the Informix driver problem for now
-    my(@args) = qw(DB  USER  PASSWORD  DRIVER);
+    my(@args) = qw(DB  USER  AUTH  DRIVER);
     if($self->{DRIVER} eq 'mSQL') {
 	@args = ('HOST', 'DB', '', 'DRIVER');
     }
@@ -48,8 +53,6 @@ sub db {
 
     return $old;
 }
-
-sub DESTROY {}
 
 package HTTPD::UserAdmin::SQL::_generic;
 use vars qw(@ISA);

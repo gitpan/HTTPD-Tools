@@ -1,3 +1,9 @@
+o more dynamic parsing of config files to handle new directives and
+  third-party module directives - Config.pm
+ 
+o need a write method to print out an httpd readable format  - Config.pm
+
+-- 
 o Traditional HTTPD text database tools such as NCSA's htpasswd read through
   the entire text file, copy to a temp file, then copy the temp file over 
   your database.  This is not ideal.  Nor is slurping the entire database into

@@ -1,3 +1,14 @@
+v0.54, April 29, 1997
+
+applied patches from Lincoln Stein to fix HTTPD::AdminBase->commit
+and allow $newstyle in salt()
+
+s/PASSWORD/AUTH/ attribute in HTTPD::UserAdmin::SQL spotted
+by Steven Kane
+
+HTTPD::UserAdmin::SQL now defines a DESTROY method which closes
+the database connection, as suggested by Edmund Mergl
+ 
 v0.53, February 9, 1997
 
 added -E flag to bhtpasswd so it can handle already
