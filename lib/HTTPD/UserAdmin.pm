@@ -1,11 +1,11 @@
-# $Id: UserAdmin.pm,v 1.13 1997/04/30 03:05:38 dougm Exp $
+# $Id: UserAdmin.pm,v 1.14 1997/07/09 02:35:43 dougm Exp $
 package HTTPD::UserAdmin;
 use HTTPD::AdminBase ();
 use Carp ();
 use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(HTTPD::AdminBase);
-$VERSION = (qw$Revision: 1.13 $)[1];
+$VERSION = (qw$Revision: 1.14 $)[1];
 
 sub delete {
     my($self, $user) = @_;
@@ -32,7 +32,7 @@ sub db {
     if($self->{'_HASH'}) {
 	$self->DESTROY;
     }
-    $file = $file =~ m,^\.*/, ? $file : "$self->{PATH}/$file";
+
     $self->{'DB'} = $file;
 
     #return unless $self->{NAME};	

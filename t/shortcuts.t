@@ -1,4 +1,4 @@
-use lib qw(./lib);
+use lib qw(./lib ./t);
 use File::Basename;
 use HTTPD::UserAdmin ();
 
@@ -11,6 +11,9 @@ sub test {
 $path = dirname($0);
 $i = 0;
 print "1..24\n";
+
+require 'clean';
+clean_files();
 
 @users = qw(one two three four five);
 @groups = qw(groupone grouptwo);
@@ -65,6 +68,6 @@ for $iter (1..2) {
     
 }
 
-for (qw(t/passwd t/group)) { unlink $_; }
-
+#for (qw(t/passwd t/group)) { unlink $_; }
+clean_files();
 

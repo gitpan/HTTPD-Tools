@@ -3,21 +3,29 @@ use HTTPD::UserAdmin ();
 use strict;
 use vars qw($VERSION @ISA $Debug);
 $Debug = 0;
-$VERSION = (qw$Revision: 1.11 $)[1];
+$VERSION = (qw$Revision: 1.12 $)[1];
 
 sub new {
     my($class) = shift;
     my(%attr);
     if(ref $_[0]) {
-	%attr = (map { $_, $_[0]->{$_} } grep(!/^_/, keys %{$_[0]}), @_);
-	shift;
+ 	my($k,$v);
+ 	while (($k,$v) = each %{$_[0]}) {
+ 	    next if substr($k,0,1) eq "_";
+ 	    $attr{$k} = $v;
+ 	}
+  	shift;
+ 	while ($k = shift @_) {
+ 	    $v = shift @_;
+ 	    $attr{$k} = $v;
+ 	}
     }
     else {
 	%attr = @_;
     }
     $attr{ENCRYPT} ||= 'crypt';
     bless {
-	USER => new HTTPD::UserAdmin (%attr, LOCKING => 0, FLAGS => 'r'), 
+	USER => HTTPD::UserAdmin->new(%attr, LOCKING => 0, FLAGS => 'r'), 
 	%attr,
     } => $class;
 }

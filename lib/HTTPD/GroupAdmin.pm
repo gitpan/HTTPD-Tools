@@ -1,11 +1,11 @@
-# $Id: GroupAdmin.pm,v 1.13 1997/02/03 02:42:36 dougm Exp $
+# $Id: GroupAdmin.pm,v 1.14 1997/07/09 02:35:43 dougm Exp $
 
 package HTTPD::GroupAdmin;
 use HTTPD::AdminBase ();
 use strict;
 use vars qw($VERSION @ISA $DLM);
 @ISA = qw(HTTPD::AdminBase);
-$VERSION = (qw$Revision: 1.13 $)[1];
+$VERSION = (qw$Revision: 1.14 $)[1];
 $DLM = " ";
 
 sub delete {
@@ -43,7 +43,7 @@ sub db {
     if($self->{'_HASH'}) {
 	$self->DESTROY;
     }
-    $file = $file =~ m,^\.*/, ? $file : "$self->{PATH}/$file";
+
     $self->{'DB'} = $file;
 
     #return unless $self->{NAME};	

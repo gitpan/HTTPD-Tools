@@ -1,9 +1,12 @@
 #!/usr/local/bin/perl5 -w
 
-use lib qw(blib ../blib ../../blib);
+use lib qw(blib ../blib ../../blib ./t);
 
-require HTTPD::UserAdmin;
-require HTTPD::GroupAdmin;
+require 'clean';
+clean_files();
+
+use HTTPD::UserAdmin ();
+use HTTPD::GroupAdmin ();
 
 $Debug = 0;
 sub test {
@@ -75,6 +78,8 @@ foreach $srv (keys %GroupSupport) {
     }
 }
 
+clean_files();
+
 sub print_matrix {
     local($^W) = 0;
     my($srv,%support);
@@ -93,5 +98,6 @@ sub print_matrix {
     }
     exit;
 }
+
 
 __END__

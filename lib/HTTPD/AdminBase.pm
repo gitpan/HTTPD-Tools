@@ -1,4 +1,4 @@
-# $Id: AdminBase.pm,v 1.13 1997/04/30 03:05:38 dougm Exp $
+# $Id: AdminBase.pm,v 1.14 1997/07/09 02:35:43 dougm Exp $
 package HTTPD::AdminBase;
 use Carp ();
 use Fcntl ();
@@ -6,7 +6,7 @@ use Symbol qw(gensym);
 use File::Basename;
 use strict;
 use vars qw($VERSION);
-$VERSION = (qw$Revision: 1.13 $)[1];
+$VERSION = (qw$Revision: 1.14 $)[1];
 
 #generic contructor stuff
 
@@ -130,8 +130,14 @@ sub _elem {
 sub _tie {
     my($self, $key, $file) = @_;
     printf STDERR "%s->_tie($file)\n", ref $self || $self if $Debug;
-    tie(%{$self->{$key}}, $self->{'_DBMPACK'}, 
-	$file, @{$self}{qw(_FLAGS MODE)}) || Carp::croak("tie '$file' $!");    
+    Carp::confess 
+	qq{Invalid HTTPD::AdminBase call: self="$self" key="$key" file="$file" \$self->{$key}="$self->{$key}"} 
+    unless defined $key and defined $file;
+    $self->{$key} ||= {};
+    my($d,$f,$fl,$m) = ($self->{'_DBMPACK'}, $file, @{$self}{qw(_FLAGS MODE)});
+
+    tie %{$self->{$key}}, $d, $f, $fl, $m
+ 	or Carp::croak("tie failed (args[$d,$f,$fl,$m]): $!");    
 }
 
 sub _untie {
@@ -172,14 +178,13 @@ sub _dbm_init {
 #File::Lock would be nice to have standard
 
 #use Fcntl qw(F_WRLCK F_SETLK F_UNLCK);
-my $STRUCT = "sslll";
+my ($LOCK_SH, $LOCK_EX, $LOCK_UN, $LOCK_NB) = (1,2,8,4);
 
 sub lock {
     my($self,$timeout,$file) = @_;
+    my($FH) = $self->{'_LOCKFH'} = $self->gensym;
     return 1 unless $self->{LOCKING};
     $timeout = $timeout || 10;
-    my $lock = pack($STRUCT,Fcntl::F_WRLCK(),0,0,0,0);
-    my($FH) = $self->{'_LOCKFH'} = $self->gensym;
 
     unless($file = $file || "$self->{DB}.lock") {
 	Carp::croak("can't set lock, no file specified!");
@@ -195,7 +200,8 @@ sub lock {
     $file =~ /^([^<>;|]+)$/ or Carp::croak("Bad file name '$file'"); $file = $1; #untaint
     
     open($FH, ">>$file") || Carp::croak("can't open '$file' $!");
-    while(! fcntl($FH, Fcntl::F_SETLK(), $lock)) {
+
+    while(! flock($FH, $LOCK_EX|$LOCK_NB) ) {
 	sleep 1;
 	if(--$timeout < 0) {
 	    print STDERR "lock: timeout, can't lock $file \n";
@@ -210,7 +216,7 @@ sub unlock {
     my($self) = @_;
     return 1 unless $self->{LOCKING};
     my $FH = $self->{'_LOCKFH'};
-    fcntl($FH, Fcntl::F_SETLK(), pack($STRUCT,Fcntl::F_UNLCK(),0,0,0,0));   
+    flock($FH, $LOCK_UN);
     close $FH;
     unlink $self->{'_LOCKFILE'};
     print STDERR "unlock-> $self->{'_LOCKFILE'}\n" if $Debug;

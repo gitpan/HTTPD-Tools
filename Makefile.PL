@@ -1,7 +1,7 @@
 # -*- perl -*-
 use ExtUtils::MakeMaker;
 
-$VERSION = "0.54";
+$VERSION = "0.55";
     
 WriteMakefile(
 	      VERSION   => $VERSION,

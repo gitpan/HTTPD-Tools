@@ -21,6 +21,7 @@ lib/HTTPD/UserAdmin/DBM.pm
 lib/HTTPD/UserAdmin/SQL.pm
 lib/HTTPD/UserAdmin/Text.pm
 lib/HTTPD/UserAdmin/Text/cern.pm
+t/clean
 t/authen.t
 t/convert.t
 t/support.t

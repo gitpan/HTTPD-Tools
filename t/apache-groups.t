@@ -1,4 +1,4 @@
-use lib qw(./lib);
+use lib qw(./lib ./t);
 use File::Basename;
 use HTTPD::GroupAdmin ();
 
@@ -10,6 +10,8 @@ sub test {
 
 $path = dirname($0);
 $i = 0;
+require 'clean';
+clean_files();
 
 print "1..30\n";
 
@@ -56,7 +58,4 @@ for $dbtype (qw(Text DBM)) {
 
 }
 
-for (<$path/.htgroup*>) {
-    print "deleting $_\n";
-    unlink $_;
-}
+clean_files();

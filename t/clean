@@ -1,0 +1,21 @@
+package test::clean;
+my($db, @files);
+
+for $db (qw(.htpasswd .htdigest .htgroup passwd group .htpasswd-new www-cern-users www-apache-users)) {
+    push @files, $db, map { "$db.$_" } qw(db dir pag);
+}
+
+sub main::clean_files () {
+    # unlink <./$db.*>, <.htdigest*>;
+    my($f, $file);
+    for $f ( @files ) {
+	for $file ($f, "t/$f") {
+	    $f = $file, last if -f $file;
+	}
+	next unless -f $f;
+	#print -f $f ? "deleting $f\n" : "n'existe: $f\n";
+	unlink $f;
+    }
+}
+
+1;

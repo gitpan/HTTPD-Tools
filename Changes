@@ -1,3 +1,13 @@
+v0.55, July 8, 1997
+
+applied patch from Nathan Torkington 
+to use (more portable) flock() instead of fcntl()
+
+applied patches from Andreas Koenig to:
+- make HTTPD::AdminBase->_tie stricter
+- fix/optimize some map/grep combos
+- fix test suite when running on Linux
+
 v0.54, April 29, 1997
 
 applied patches from Lincoln Stein to fix HTTPD::AdminBase->commit
