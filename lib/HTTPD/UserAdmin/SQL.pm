@@ -1,8 +1,10 @@
-# $Id: SQL.pm,v 1.11 1996/03/11 00:01:23 dougm Exp $
+# $Id: SQL.pm,v 1.12 1997/02/03 02:42:36 dougm Exp $
 package HTTPD::UserAdmin::SQL;
-@ISA = qw(HTTPD::UserAdmin);
 use DBI;
-require Carp;
+use Carp ();
+use strict;
+use vars qw(@ISA);
+@ISA = qw(HTTPD::UserAdmin);
 
 my %Default = (HOST => "",                  #server hostname
 	       DB => "",                    #database name
@@ -28,8 +30,8 @@ sub db {
     return $old unless $db;
     $self->{DB} = $db; 
 
-    if(defined $self->{_DBH}) {
-	$self->{_DBH}->disconnect;
+    if(defined $self->{'_DBH'}) {
+	$self->{'_DBH'}->disconnect;
     }
 
     #we should just be able to say this:
@@ -42,7 +44,7 @@ sub db {
     if($self->{DRIVER} eq 'mSQL') {
 	@args = ('HOST', 'DB', '', 'DRIVER');
     }
-    $self->{_DBH} = DBI->connect( @{$self}{ @args } );
+    $self->{'_DBH'} = DBI->connect( @{$self}{ @args } );
 
     return $old;
 }
@@ -50,6 +52,7 @@ sub db {
 sub DESTROY {}
 
 package HTTPD::UserAdmin::SQL::_generic;
+use vars qw(@ISA);
 @ISA = qw(HTTPD::UserAdmin::SQL);
 
 sub add {
@@ -65,7 +68,7 @@ sub add {
 		$noenc ? $passwd : $self->encrypt($passwd));
 
     print STDERR $statement if $self->debug;
-    $self->{_DBH}->do($statement) || Carp::croak($DBI::errstr);
+    $self->{'_DBH'}->do($statement) || Carp::croak($DBI::errstr);
     1;
 }
 
@@ -75,7 +78,7 @@ sub exists {
 	sprintf("SELECT %s from %s WHERE %s='%s'\n",
 		@{$self}{qw(PASSWORDFIELD USERTABLE NAMEFIELD)}, $username);
     print STDERR $statement if $self->debug;
-    my $sth = $self->{_DBH}->prepare($statement);
+    my $sth = $self->{'_DBH'}->prepare($statement);
     Carp::carp("Cannot prepare sth ($DBI::err): $DBI::errstr")
 	unless $sth;
     $sth->execute || Carp::croak($DBI::err);
@@ -90,7 +93,7 @@ sub delete {
 	sprintf("DELETE from %s where %s='%s'\n",
 		@{$self}{qw(USERTABLE NAMEFIELD)}, $username);
     print STDERR $statement if $self->debug;
-    $self->{_DBH}->do($statement) || Carp::croak($DBI::errstr);
+    $self->{'_DBH'}->do($statement) || Carp::croak($DBI::errstr);
 }
 
 sub update {
@@ -101,7 +104,7 @@ sub update {
 		@{$self}{qw(USERTABLE PASSWORDFIELD)}, $self->encrypt($passwd),
 		$self->{NAMEFIELD}, $username);
     print STDERR $statement if $self->debug;
-    $self->{_DBH}->do($statement) || Carp::croak($DBI::errstr);
+    $self->{'_DBH'}->do($statement) || Carp::croak($DBI::errstr);
 }
 
 sub list {
@@ -110,7 +113,7 @@ sub list {
 	sprintf("SELECT %s from %s\n",
 		@{$self}{qw(NAMEFIELD USERTABLE)});
     print STDERR $statement if $self->debug;
-    my $sth = $self->{_DBH}->prepare($statement);
+    my $sth = $self->{'_DBH'}->prepare($statement);
     Carp::carp("Cannot prepare sth ($DBI::err): $DBI::errstr")
 	unless $sth;
     $sth->execute || Carp::croak($DBI::err);

@@ -1,48 +1,48 @@
 #!/usr/local/bin/perl5 -wT
+use vars qw(%User %ConfigVars $ShowList);
+use strict;
+#CGI::Switch comes with mod_perl, for switching between CGI and mod_perl
+#if you only wish to run under CGI, you may replace `CGI::Switch' with `CGI'
+use CGI::Switch ();
+use HTTPD::UserAdmin ();
+use FileHandle ();
 
-#use vars (qw($query $cgi $user));
-use strict qw(refs subs);
-require CGI::Form;
-require HTTPD::UserAdmin;
-
-$query = new CGI::Form;
-$cgi = $query->cgi;
-$CGI::CRLF = "\r\n" unless defined $CGI::CRLF;
-
-if($cgi->var('PATH_INFO')) {
-    $file = $cgi->var('PATH_TRANSLATED');
-    open(FH, $file) || die "open '$file' $!";
-    $fh = \*FH;
-}
-else { $fh = \*DATA }
+$^W=1;
+my $query = new CGI::Switch;
 
 %ConfigVars = map { $_,1 } qw(User);
 %User = ();
+my $fh;
+if($query->path_info) {
+    my $file = $query->path_translated;
+    $fh = FileHandle->new($file) || die "open '$file' $!";
+}
 read_config($fh);
 $ShowList = "";
 $ShowList = delete $User{List} if defined $User{List};
 
-$user = new HTTPD::UserAdmin (%User);
+my $user = new HTTPD::UserAdmin (%User);
 
-print  $query->header,
+$query->print($query->header,
        $query->start_html('HTTPD Admin'),
-       $query->startform(-script => $cgi->var('SCRIPT_NAME')),
-       user_admin($cgi->var('REQUEST_METHOD')),
+       $query->startform(-script => $query->script_name),
+       user_admin($query,$user),
        $query->endform, 
-       $query->end_html;
+       $query->end_html);
 
 sub user_admin {
-    my($method) = @_;
+    my($query, $user) = @_;
+    my $method = $query->request_method;
     my($resp,@html,$user_list,$append);
     if($method eq "POST") {
 	no strict;
-	$resp = &{"user_" . $query->param('POSTACTION')};
+	$resp = &{"user_" . $query->param('POSTACTION')}($query,$user);
     }
     unless ($ShowList =~ /^off$/i) {
 	my(@users) = $user->list;
 	$user_list = "Users: " . 
 	    $query->scrolling_list(-name => 'USERS',
-				   -values => [sort @users],
+				   '-values' => [sort @users],
 				   -size => 2,
 				   -multiple => 1,
 				   );
@@ -66,13 +66,14 @@ sub user_admin {
 	 "<BR>Username: " . $query->textfield('USERNAME'),
 	 "<BR>Password: ", (map { $query->password_field('PASSWD_' . $_) } 1,2),
 	 $append,
-	 buttons(),
+	 buttons($query, $user),
 	 result($resp),
 	 );
     join $CGI::CRLF, @html;
 }		 
 
 sub user_add {
+    my($query, $user) = @_;
     my($passwd,$passwd2,$username) = map { $query->param($_) } qw(PASSWD_1 PASSWD_2 USERNAME);
     return "No user specified!"     unless $username;
     return "No password specified!" unless ($passwd && $passwd2);
@@ -86,6 +87,7 @@ sub user_add {
 }
 
 sub user_delete {
+    my($query, $user) = @_;
     my(@usernames) = $query->param('USERS');
     return "Select users from the list to delete!" unless @usernames;
     my($rc,$msg);
@@ -97,6 +99,7 @@ sub user_delete {
 }
 
 sub user_update {
+    my($query, $user) = @_;
     my($passwd,$passwd2,$username) = map { $query->param($_) } qw(PASSWD_1 PASSWD_2 USERNAME);
     $username ||= $query->param('USERS');
     return "No user specified!" unless $username;
@@ -117,6 +120,7 @@ sub user_help {
 sub result { "<p><b>@_</b>\n" }
 
 sub buttons {
+    my($query, $user) = @_;
     my(@retval) = "<p><hr>";
     foreach(qw(add delete update help)) {
 	push(@retval, $query->submit('POSTACTION', $_));
@@ -124,24 +128,7 @@ sub buttons {
     @retval;
 }
 
-sub read_config {
-    my($fh) = @_;
-    my($hash,$key,$val);
-    no strict 'refs';
-    while(<$fh>) {
-	clean(*_); next if /^$/;
-	($hash,$key,$val) = split;
-	unless(defined $ConfigVars{$hash}) {
-	    die "Unknown configuration directive '$hash'";
-	}
-	$$hash{$key} = $val;
-    }
-}
-
-sub clean { local(*_) = @_; chomp; s/#.*//; s/^\s+//; s/\s+$/ /; }
-
-__END__
-
+my $default = <<'EOF';
 User    DB      www-users
 User    DBType  DBM
 User    Server  apache
@@ -155,5 +142,22 @@ User    Server  apache
 #Group   DBType  DBM
 #Group   Server  apache
 
+EOF
+
+sub read_config {
+    my($fh) = @_;
+    my($hash,$key,$val,@config);
+    @config = ref $fh ? <$fh> : split /\n+/, $default;
+    no strict 'refs';
+    local $_;
+    for (@config) {
+	chomp; s/\#.*//; s/^\s+//; s/\s+$/ /; next if /^$/;
+	($hash,$key,$val) = split;
+	unless(defined $ConfigVars{$hash}) {
+	    die "Unknown configuration directive '$hash'";
+	}
+	$$hash{$key} = $val;
+    }
+}
 
 

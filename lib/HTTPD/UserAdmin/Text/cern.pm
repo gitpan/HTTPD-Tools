@@ -1,5 +1,5 @@
 package HTTPD::UserAdmin::Text::cern;
-@ISA = qw(HTTPD::UserAdmin::Text::_generic);
+@ISA = qw(HTTPD::UserAdmin::Text);
 
 #tweedle dee, tweedle dumb
 sub new {

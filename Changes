@@ -1,3 +1,30 @@
+v0.53, February 9, 1997
+
+added -E flag to bhtpasswd so it can handle already
+encrypted passwords.
+
+add flags and commit methods
+
+Flags attribute now works to make text files open for read-only
+
+HTTPD::GroupAdmin->exists method now implemented
+
+fixed group text file parsing bug spotted by Andreas Koenig
+
+*.pm are now strict clean
+
+fixed cgi-bin/htpasswd.pl so we're mod_perl clean
+
+added apache-groups and shortcuts.t test
+
+applied patch from Mark Baker <MBaker@vision-solns.co.uk> to 
+fix GroupAdmin::Text format bug (use ' ' not ',')
+
+applied Apache DBM group file fixes and enhancements 
+from Alex Wong <alexw@best.com>
+
+added bin/htcheck script
+
 v0.52, March 18, 1996
 
 Fixed support for Apache DBM group files. 

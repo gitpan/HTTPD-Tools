@@ -1,7 +1,10 @@
-# $Id: DBM.pm,v 1.12 1996/03/18 15:50:47 dougm Exp $
+# $Id: DBM.pm,v 1.13 1997/02/03 02:42:36 dougm Exp $
 package HTTPD::GroupAdmin::DBM;
+use vars qw(@ISA $DLM);
+use strict;
+use Carp ();
 @ISA = qw(HTTPD::GroupAdmin);
-require Carp;
+$DLM = " ";
 
 my %Default = (PATH => ".",
 	       DB => ".htgroup",
@@ -24,84 +27,47 @@ DESTROY {
     $_[0]->unlock;
 }
 
-sub db {
-    my($self, $file) = @_;
-    my $old = $self->{'DB'};
-    return $old unless $file;
-    if($self->{_HASH}) {
-	$self->DESTROY;
-    }
-    $file = $file =~ m,^\.*/, ? $file : "$self->{PATH}/$file";
-    $self->{'DB'} = $file;
-
-    #return unless $self->{NAME};	
-    $self->lock || Carp::croak();
-    $self->_tie('_HASH', $self->{DB});
-    $old;
-}
-
-package HTTPD::GroupAdmin::DBM::_generic;
-@ISA = qw(HTTPD::GroupAdmin::DBM);
-require Carp;
-
-$DLM = " ";
-
 sub add {
     my($self, $username, $group) = @_;
     $group = $self->{NAME} unless defined $group;
     return(0, "No group name!") unless defined $group;
 
-    unless ($self->{_HASH}{$group}) {
-	$self->_tie('_HASH', $self->{DB});
+    unless ($self->{'_HASH'}) {
+ 	$self->_tie('_HASH', $self->{DB});
     }
-    if ($self->{_HASH}{$group}) {
+    if ($self->{'_HASH'}{$group}) {
 	return (0, "'$username' already in '$group'") if
-	    $self->{_HASH}{$group} =~ /(^|[$DLM]+)$username([$DLM]+|$)/;
+	    $self->{'_HASH'}{$group} =~ /(^|[$DLM]+)$username([$DLM]+|$)/;
     }
     #for that old .= bug, should be fixed now
     my $val = "";	
-    if(defined $self->{_HASH}{$group}) {
-	$val = $self->{_HASH}{$group} . $DLM;
+    if(defined $self->{'_HASH'}{$group}) {
+	$val = $self->{'_HASH'}{$group} . $DLM;
     }
     $val .= $username;
-    $self->{_HASH}{$group} = $val;
-}
-
-sub delete {
-    my($self,$username,$group) = @_;
-    $group = $self->{NAME} unless defined $group;
-    $self->{_HASH}->{$group} =~ s/(^|$DLM)$username($DLM|$)/$1$2/;
+    $self->{'_HASH'}{$group} = $val;
 }
 
 sub remove { 
     my($self,$group) = @_;
     $group = $self->{NAME} unless defined $group;
-    delete $self->{_HASH}{$group};
+    delete $self->{'_HASH'}{$group};
     if($self->{NAME} eq $group) {
 	delete $self->{NAME};
     }
     1;
 }
 
-sub create {
-    my($self,$group) = @_;
-    return unless $group;
-    Carp::croak("group '$group' exists") if $self->exists($group);
-    $self->{_HASH}{$group} = "";
-    1;
-}
-
-sub exists {
-    my($self, $name) = @_;
-    return 0 unless defined $self->{_HASH}{$name};
-    return $self->{_HASH}{$name};
-}
-
 sub list {
-    return split(/[$DLM]+/, $_[0]->{_HASH}{$_[1]}) if $_[1];
-    keys %{$_[0]->{_HASH}};
+    return split(/[$DLM]+/, $_[0]->{'_HASH'}{$_[1]}) if $_[1];
+    keys %{$_[0]->{'_HASH'}};
 }
+
+package HTTPD::GroupAdmin::DBM::_generic;
+use vars qw(@ISA);
+@ISA = qw(HTTPD::GroupAdmin::DBM);
 
 1;
 
+__END__
 

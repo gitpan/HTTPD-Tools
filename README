@@ -1,20 +1,11 @@
 HTTPD-Tools
 
-Copyright (c) 1996, Doug MacEachern, OSF Research Institute
+Copyright (c) 1996, 1997 Doug MacEachern
 
 This library is free software; 
 you can redistribute it and/or modify it under the same terms as Perl itself. 
 
 WARNING: THIS IS BETA SOFTWARE. IT IS POSSIBLY UNRELIABLE!
-
------------------------------------------------
-From the Changes file:
-
-v0.52, March 18, 1996
-
-Fixed support for Apache DBM group files. 
-Thanks to Julian Anderson <Julian.Anderson@Comp.VUW.AC.NZ>
-for pointing out the problem.
 
 ------------------------------------------------
 
@@ -53,7 +44,7 @@ Mail me (dougm@osf.org) the following info:
     make test TEST_VERBOSE=1   (if any tests fail)
 
 2. The output of:
-    perl -e 'use Config; print Config::myconfig()'
+    perl -V
 
 3. HTTPd Info:
     Server Name:
@@ -61,5 +52,5 @@ Mail me (dougm@osf.org) the following info:
 
 MORE:
 
-There may also be some CGI goodies in the cgi-bin directory
+There may also be some goodies in the bin/ and cgi-bin/ directories
 of interest.  Poke around.

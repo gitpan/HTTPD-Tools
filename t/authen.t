@@ -2,8 +2,8 @@
 
 use lib qw(blib ../blib ../../blib lib);
 
-require HTTPD::UserAdmin;
-require HTTPD::Authen;
+use HTTPD::UserAdmin ();
+use HTTPD::Authen ();
 
 sub test {
     local($^W)=0;

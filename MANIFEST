@@ -5,6 +5,7 @@ Makefile.PL
 README
 ToDo
 bin/bhtpasswd
+bin/htcheck
 cgi-bin/README
 cgi-bin/config
 cgi-bin/htpasswd.pl
@@ -24,3 +25,5 @@ t/authen.t
 t/convert.t
 t/support.t
 t/users-groups.t
+t/apache-groups.t
+t/shortcuts.t

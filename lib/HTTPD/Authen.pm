@@ -1,10 +1,9 @@
 package HTTPD::Authen;
-require HTTPD::UserAdmin;
-
-$HTTPD::Authen::Debug = 0;
-
-$VERSION = sprintf("%d.%02d", q$Revision: 1.10 $ =~ /(\d+)\.(\d+)/);
-sub Version { $VERSION; }
+use HTTPD::UserAdmin ();
+use strict;
+use vars qw($VERSION @ISA $Debug);
+$Debug = 0;
+$VERSION = (qw$Revision: 1.11 $)[1];
 
 sub new {
     my($class) = shift;
@@ -55,9 +54,10 @@ sub digest { HTTPD::Authen::Digest->new($_[0]) }
 sub basic  { HTTPD::Authen::Basic->new($_[0])  }
 
 package HTTPD::Authen::Basic;
+use strict;
+use vars qw(@ISA $Debug);
 @ISA = qw(HTTPD::Authen);
-
-$Debug = $HTTPD::Authen::Debug;
+*Debug = \$HTTPD::Authen::Debug;
 
 sub new {
     require MIME::Base64;
@@ -73,9 +73,10 @@ sub parse {
 }
 
 package HTTPD::Authen::Digest;
+use strict;
+use vars qw(@ISA $Debug);
 @ISA = qw(HTTPD::Authen);
-
-$Debug = $HTTPD::Authen::Debug;
+*Debug = \$HTTPD::Authen::Debug;
 
 sub new {
     my($class,$ref) = @_;
@@ -88,7 +89,7 @@ sub new {
 sub parse {
    my($self,$string) = @_;
    $string =~ s/^Digest\s+//; 
-   $string =~ s/"//g;
+   $string =~ s/"//g; #"
    my(@pairs) = split(/,?\s+/, $string);
    my(%pairs) = map { split(/=/) } @pairs;
    print STDERR "Digest::parse -> @pairs{qw(username realm response)}\n" if $Debug;
@@ -171,7 +172,7 @@ HTTPD::Authen - HTTP server authentication class
 
 =head1 SYNOPSIS
 
-    require HTTPD::Authen;
+    use HTTPD::Authen ();
 
 
 =head1 DESCRIPTION

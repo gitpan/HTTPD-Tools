@@ -1,11 +1,56 @@
-# $Id: GroupAdmin.pm,v 1.12 1996/03/18 15:32:51 dougm Exp $
+# $Id: GroupAdmin.pm,v 1.13 1997/02/03 02:42:36 dougm Exp $
 
 package HTTPD::GroupAdmin;
+use HTTPD::AdminBase ();
+use strict;
+use vars qw($VERSION @ISA $DLM);
 @ISA = qw(HTTPD::AdminBase);
-require HTTPD::AdminBase;
+$VERSION = (qw$Revision: 1.13 $)[1];
+$DLM = " ";
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.12 $ =~ /(\d+)\.(\d+)/);
-sub Version { $VERSION; }
+sub delete {
+    my($self,$username,$group) = @_;
+    $group = $self->{NAME} unless defined $group;
+    return unless exists $self->{'_HASH'}->{$group};
+    $self->{'_HASH'}->{$group} =~ s/(^|$DLM)$username($DLM|$)/$1$2/;
+}
+
+sub list {
+    my($self, $group) = @_;
+    return keys %{$self->{'_HASH'}} unless $group;
+    split /\s+/, $self->{'_HASH'}{$group};
+}
+
+sub create {
+    my($self,$group) = @_;
+    return unless $group;
+    return (0, "group '$group' exists") if $self->exists($group);
+    $self->{'_HASH'}{$group} = "";
+    1;
+}
+
+sub exists {
+    my($self, $name, $user) = @_;
+    return 0 unless defined $self->{'_HASH'}{$name};
+    return $self->{'_HASH'}{$name} unless $user;
+    return grep { $_ eq $user } $self->list($name);
+}
+
+sub db {
+    my($self, $file) = @_;
+    my $old = $self->{'DB'};
+    return $old unless $file;
+    if($self->{'_HASH'}) {
+	$self->DESTROY;
+    }
+    $file = $file =~ m,^\.*/, ? $file : "$self->{PATH}/$file";
+    $self->{'DB'} = $file;
+
+    #return unless $self->{NAME};	
+    $self->lock || Carp::croak();
+    $self->_tie('_HASH', $self->{DB});
+    $old;
+}
 
 sub user {
     my($self) = shift;
@@ -34,7 +79,7 @@ HTTPD::GroupAdmin - Management of HTTP server group databases
 
 =head1 SYNOPSIS
 
-    require HTTPD::GroupAdmin
+    use HTTPD::GroupAdmin ();
 
 =head1 DESCRIPTION
 
@@ -44,7 +89,9 @@ of user and group databases.
 
 =head1 METHODS
 
-=head2 new ()
+=over 4
+
+=item new ()
 
 Here's where we find out what's different about your server.
 
@@ -110,7 +157,7 @@ B<Mode>    - The file creation mode, defaults to '0644'
 From here on out, things should look the same for everyone.
 
 
-=head2 add($username[,$groupname])
+=item add($username[,$groupname])
 
 Add user $username to group $groupname, or whatever the 'Name' attribute is set to.
 
@@ -120,7 +167,7 @@ Fails if $username exists in the database
 	print "Welcome!\n";
     }
 
-=head2 delete($username[,$groupname])
+=item delete($username[,$groupname])
 
 Delete user $username from group $groupname, or whatever the 'Name' attribute is set to.
 
@@ -128,15 +175,18 @@ Delete user $username from group $groupname, or whatever the 'Name' attribute is
 	print "He's gone from the group\n";
     }
 
-=head2 exists($groupname)
+=item exists($groupname, [$username])
 
 True if $groupname is found in the database
 
     if($group->exists('web-heads')) {
 	die "oh no!";
     }
+    if($group->exists($groupname, $username) {
+	#$username is a member of $groupname
+    }
 
-=head2 list([$groupname])
+=item list([$groupname])
 
 Returns a list of group names, or users in a group if '$name' is present.
 
@@ -144,7 +194,7 @@ Returns a list of group names, or users in a group if '$name' is present.
 
 @users = $group->list('web-heads');
 
-=head2 user()
+=item user()
 
 Short cut for creating an HTTPD::UserAdmin object.
 All applicable attributes are inherited, but can be 
@@ -154,28 +204,28 @@ overridden.
 
 (See HTTPD::UserAdmin)
 
-=head2 convert(@Attributes)
+=item convert(@Attributes)
 
 Convert a database. 
 
     #not yet
 
-=head2 remove($groupname)
+=item remove($groupname)
 
 Remove group $groupname from the database
 
-=head2 name($groupname)
+=item name($groupname)
 
 Change the value of 'Name' attribute.
 
     $group->name('bew-ediw-dlrow');
 
-=head2 debug($boolean)
+=item debug($boolean)
 
 Turn debugging on or off
 
-=head2 lock([$timeout])
-=head2 unlock()
+=item lock([$timeout])
+=item unlock()
 
 These methods give you control of the locking mechanism.
 
@@ -184,23 +234,32 @@ These methods give you control of the locking mechanism.
     $group->add($username,$passwd); #write while database is locked
     $group->unlock; release the lock
 
-=head2 db($dbname);
+=item db($dbname);
 
 Select a different database.
 
     $olddb = $group->db($newdb);
     print "Now we're reading and writing '$newdb', done with '$olddb'n\";
 
+=item flags([$flags])
+
+Get or set read, write, create flags.
+
+=item commit
+
+Commit changes to disk (for Text files).
+
+=back
 
 =head1 SEE ALSO
 
-HTTPD::UserAdmin
+HTTPD::UserAdmin(3)
 
 =head1 AUTHOR
 
 Doug MacEachern <dougm@osf.org>
 
-Copyright (c) 1996, Doug MacEachern, OSF Research Institute
+Copyright (c) 1996, 1997 Doug MacEachern 
 
 This library is free software; 
 you can redistribute it and/or modify it under the same terms as Perl itself. 

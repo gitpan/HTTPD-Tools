@@ -1,3 +1,4 @@
+MANIFEST.SKIP
 \bRCS\b
 \.bak$
 ^Makefile$

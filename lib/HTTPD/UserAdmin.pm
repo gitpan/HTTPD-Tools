@@ -1,11 +1,45 @@
-# $Id: UserAdmin.pm,v 1.11 1996/03/10 23:55:52 dougm Exp $
+# $Id: UserAdmin.pm,v 1.12 1997/02/03 02:42:36 dougm Exp $
 package HTTPD::UserAdmin;
+use HTTPD::AdminBase ();
+use Carp ();
+use strict;
+use vars qw($VERSION @ISA);
 @ISA = qw(HTTPD::AdminBase);
-require HTTPD::AdminBase;
-require Carp;
+$VERSION = (qw$Revision: 1.12 $)[1];
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.11 $ =~ /(\d+)\.(\d+)/);
-sub Version { $VERSION; }
+sub delete {
+    my($self, $user) = @_;
+    my $rc = 1; 
+    delete($self->{'_HASH'}{$user});
+    $self->{'_HASH'}{$user} and $rc = 0;
+    $rc;
+}
+
+sub list {
+    keys %{$_[0]->{'_HASH'}};
+}
+
+sub exists {
+    my($self, $name) = @_;
+    return 0 unless defined $self->{'_HASH'}{$name};
+    return $self->{'_HASH'}{$name};
+}
+
+sub db {
+    my($self, $file) = @_;
+    my $old = $self->{'DB'};
+    return $old unless $file;
+    if($self->{'_HASH'}) {
+	$self->DESTROY;
+    }
+    $file = $file =~ m,^\.*/, ? $file : "$self->{PATH}/$file";
+    $self->{'DB'} = $file;
+
+    #return unless $self->{NAME};	
+    $self->lock || Carp::croak();
+    $self->_tie('_HASH', $self->{DB});
+    $old;
+}
 
 sub group {
     my($self) = shift;
@@ -61,15 +95,15 @@ sub encrypt {
     elsif ($scheme eq "MD5") {
 	#I know, this isn't really "encryption", 
 	#since you can't decrypt it, oh well...
-	unless (defined $self->{_MD5}) {
+	unless (defined $self->{'_MD5'}) {
 	    require MD5;
-	    $self->{_MD5} = new MD5;
+	    $self->{'_MD5'} = new MD5;
 	}
 	my($username,$realm,$pass) = split(":", $_[0]);
 
-	$self->{_MD5}->add(join(":", $username, $realm, $pass));
-	$passwd = join(":", $realm, $self->{_MD5}->hexdigest());
-	$self->{_MD5}->reset;
+	$self->{'_MD5'}->add(join(":", $username, $realm, $pass));
+	$passwd = join(":", $realm, $self->{'_MD5'}->hexdigest());
+	$self->{'_MD5'}->reset;
     }
     else {
 	Carp::croak("unknown encryption method '$_'");
@@ -83,7 +117,7 @@ sub salt {
 	join('', "_", randchar(1), "a..", randchar(4)) : randchar(2);
 }
 
-@saltset = (qw(. /), 0..9, "A".."Z", "a".."z");
+my(@saltset) = (qw(. /), 0..9, "A".."Z", "a".."z");
 srand(time ^ $$);
 
 sub randchar {
@@ -112,7 +146,7 @@ HTTPD::UserAdmin - Management of HTTP server user databases
 
 =head1 SYNOPSIS
 
-require HTTPD::UserAdmin
+    use HTTPD::UserAdmin ();
 
 =head1 DESCRIPTION
 
@@ -122,7 +156,9 @@ of user and group databases.
 
 =head1 METHODS
 
-=head2 new ()
+=over 4
+
+=item new ()
 
 Here's where we find out what's different about your server.
 
@@ -189,16 +225,16 @@ B<Path>    - Relative DB files are resolved to this value  (Default is '.')
 
 B<Debug>   - Boolean, Turn on debug mode
 
-Specific to DBM files:
-
-B<DBMF>    - The DBM file implementation to use (Default is 'NDBM')
-
 B<Flags>   - The read, write and create flags.  
 There are four modes:
 B<rwc> - the default, open for reading, writing and creating.
 B<rw> - open for reading and writing.
 B<r> - open for reading only.
 B<w> - open for writing only.
+
+Specific to DBM files:
+
+B<DBMF>    - The DBM file implementation to use (Default is 'NDBM')
 
 B<Mode>    - The file creation mode, defaults to '0644'
 
@@ -224,7 +260,7 @@ B<PasswordField> - Field for the password  (Default is 'password')
 From here on out, things should look the same for everyone.
 
 
-=head2 add($username,$password[,$noenc,@fields])
+=item add($username,$password[,$noenc,@fields])
 
 Add a user.
 
@@ -243,7 +279,7 @@ This depends on your server of course.
     $user->add('JoeUser', 'try2guess', '', 'Joseph A. User');
 
 
-=head2 delete($username)
+=item delete($username)
 
 Delete a user
 
@@ -251,7 +287,7 @@ Delete a user
 	print "He's gone\n";
     }
 
-=head2 exists($username)
+=item exists($username)
 
 True if $username is found in the database
 
@@ -259,7 +295,7 @@ True if $username is found in the database
 	die "oh no!";
     }
 
-=head2 password()
+=item password()
 
 Returns the encrypted password for a user
 
@@ -267,13 +303,13 @@ Returns the encrypted password for a user
 
 Useful for copying users to another database.
 
-=head2 list()
+=item list()
 
 Returns a list of usernames in the current database
 
     @users = $user->list
 
-=head2 update($username,$password)
+=item update($username,$password)
 
 Update $username with a new $password
 
@@ -281,7 +317,7 @@ Update $username with a new $password
 	print "Updated\n";
     }
 
-=head2 group()
+=item group()
 
 Short cut for creating an HTTPD::GroupAdmin object.
 All applicable attributes are inherited, but can be 
@@ -291,14 +327,14 @@ overridden.
 
 (See HTTPD::GroupAdmin)
 
-=head2 convert(@Attributes)
+=item convert(@Attributes)
 
 Convert a database. 
 
     $dbmuser = $user->convert(@Apache);
 
-=head2 lock([$timeout])
-=head2 unlock()
+=item lock([$timeout])
+=item unlock()
 
 These methods give you control of the locking mechanism.
 
@@ -308,16 +344,26 @@ These methods give you control of the locking mechanism.
     $user->unlock; release the lock
 
 
-=head2 db($dbname);
+=item db($dbname);
 
 Select a different database.
 
     $olddb = $user->db($newdb);
     print "Now we're reading and writing '$newdb', done with '$olddb'n\";
 
+=item flags([$flags])
+
+Get or set read, write, create flags.
+
+=item commit
+
+Commit changes to disk (for Text files).
+
+=back
+
 =head1 Message Digest User Databases
 
-Currently, you can store user info in a format for servers who understand
+Currently, you can store user info in a format for servers who support
 Message Digest Authentication.  Here's an example:
 
   $user = new HTTPD::UserAdmin (DB => '.htdigest', Encrypt => 'MD5');
@@ -342,15 +388,16 @@ So, it's a little more work, but don't worry, a nicer interface is on the way.
 
 =head1 SEE ALSO
 
-HTTPD::GroupAdmin, HTTPD::Authen
+HTTPD::GroupAdmin(3), HTTPD::Authen(3)
 
 =head1 AUTHOR
 
 Doug MacEachern <dougm@osf.org>
 
-Copyright (c) 1996, Doug MacEachern, OSF Research Institute
+Copyright (c) 1996, Doug MacEachern
 
 This library is free software; 
 you can redistribute it and/or modify it under the same terms as Perl itself. 
 
 =cut
+

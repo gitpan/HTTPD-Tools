@@ -1,11 +1,15 @@
-# $Id: Text.pm,v 1.11 1996/03/11 00:01:23 dougm Exp $
+# $Id: Text.pm,v 1.12 1997/02/03 02:42:36 dougm Exp $
 package HTTPD::UserAdmin::Text;
-require HTTPD::UserAdmin;
-require Carp;
-@ISA = qw(HTTPD::UserAdmin);
+use HTTPD::UserAdmin ();
+use Carp ();
+use strict;
+use vars qw(@ISA $DLM);
+@ISA = qw(HTTPD::UserAdmin::DBM HTTPD::UserAdmin);
+$DLM = ":";
 
 my %Default = (PATH => ".", 
 	       DB => ".htpasswd", 
+	       FLAGS => "rwc",
 	       );
 
 sub new {
@@ -26,42 +30,44 @@ sub _tie {
     my($fh,$db) = ($self->gensym(), $self->{DB});
     printf STDERR "%s->_tie($db)\n", $self->class if $self->debug;
 
-    $db =~ /^[^<>;|]+$/ or Carp::croak("Bad file name '$file'"); $db = $&; #untaint
+    $db =~ /^([^<>;|]+)$/ or Carp::croak("Bad file name '$db'"); $db = $1; #untaint
     open($fh, $db) or return;
     my($key,$val);
     
     while(<$fh>) { #slurp! need a better method here.
 	($key,$val) = $self->_parseline($fh, $_);
-	$self->{_HASH}{$key} = $val; 
+	$self->{'_HASH'}{$key} = $val; 
     }
     close $fh;
 }
 
 sub _untie {
     my($self) = @_;
-    return unless exists $self->{_HASH};
+    return unless exists $self->{'_HASH'};
+    $self->commit;
+    delete $self->{'_HASH'};
+}
+
+sub commit {
+    my($self) = @_;
+    return if $self->readonly;
     my($fh,$db) = ($self->gensym(), $self->{DB});
     my($key,$val);
 
-    $db =~ /^[^<>;|]+$/ or Carp::croak("Bad file name '$file'"); $db = $&; #untaint
-    open($fh, ">$db") or Carp::croak("open: '$db' $!");
+    $db =~ /^([^<>;|]+)$/ or return (0, "Bad file name '$db'"); $db = $1; #untaint
+    open($fh, ">$db") or return (0, "open: '$db' $!");
 
-    while(($key,$val) = each %{$self->{_HASH}}) {
+    while(($key,$val) = each %{$self->{'_HASH'}}) {
 	print $fh $self->_formatline($key,$val);
     }
-    delete $self->{_HASH};
+    close $fh;
+    1;
 }
 
-package HTTPD::UserAdmin::Text::_generic;
-@ISA = qw(HTTPD::UserAdmin::Text
-	  HTTPD::UserAdmin::DBM::_generic);
-
-$DLM = ":";
-
 sub _parseline {
-    local($self,$fh,$_) = @_;
-    chomp;
-    my($key, $val) = split($DLM, $_, 2);
+    my($self,$fh,$line) = @_;
+    chomp $line;
+    my($key, $val) = split($DLM, $line, 2);
     return ($key,$val);
 }
 
@@ -70,4 +76,16 @@ sub _formatline {
     join($DLM, $key,$val) . "\n";
 }
 
+package HTTPD::UserAdmin::Text::_generic;
+use vars qw(@ISA);
+@ISA = qw(HTTPD::UserAdmin::Text
+	  HTTPD::UserAdmin::DBM);
+
 1;
+
+__END__
+
+
+
+
+

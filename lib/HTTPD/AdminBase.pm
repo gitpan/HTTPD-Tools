@@ -1,11 +1,12 @@
-# $Id: AdminBase.pm,v 1.11 1996/03/10 23:55:52 dougm Exp $
+# $Id: AdminBase.pm,v 1.12 1997/02/10 00:25:15 dougm Exp $
 package HTTPD::AdminBase;
-require Carp;
-require Fcntl;
+use Carp ();
+use Fcntl ();
+use Symbol qw(gensym);
 use File::Basename;
-
-$VERSION = sprintf("%d.%02d", q$Revision: 1.11 $ =~ /(\d+)\.(\d+)/);
-sub Version { $VERSION; }
+use strict;
+use vars qw($VERSION);
+$VERSION = (qw$Revision: 1.12 $)[1];
 
 #generic contructor stuff
 
@@ -14,6 +15,7 @@ my %Default = (DBTYPE => "DBM",
 	       SERVER => "_generic",
 	       DEBUG  => $Debug,
 	       LOCKING => 1,
+	       READONLY => 0,
 	       );
 
 my %ImplementedBy = ();
@@ -28,9 +30,8 @@ sub new {
     my $impclass = $class->implementor(@{$attrib}{qw(DBTYPE SERVER)});
     unless ($impclass) {
 	Carp::croak(sprintf "%s not implemented for Server '%s' and DBType '%s'",
-	               $self->class, @{$self}{qw(SERVER DBTYPE)});
+	               $class, @{$attrib}{qw(SERVER DBTYPE)});
     }
-
     #the final product
     return new $impclass ( %{$attrib} );
 }
@@ -53,15 +54,15 @@ sub dbtype {
 #implementor code derived from URI::URL
 sub implementor {
     my($self,$dbtype,$server,$impclass) = @_;
-    my $class = $self->class;
+    my $class = ref $self || $self;
     my $ic;
-    if($self->is_instance) {
+    if(ref $self) {
 	($server,$dbtype) = @{$self}{qw(SERVER DBTYPE)};
     }
 
     $server = (defined $server) ? lc($server) : '_generic';
     $dbtype = (defined $dbtype) ? $dbtype     : 'DBM';
-    $modclass = join('::', $class,$dbtype,$server);
+    my $modclass = join('::', $class,$dbtype,$server);
     if ($impclass) {
         $ImplementedBy{$modclass} = $impclass;
     }
@@ -85,7 +86,7 @@ sub load {
     my($ic,$module);
     if(@_ > 1) { $ic = join('::', @_) }
     else       { $ic = $_[0] }
-
+    no strict 'refs';
     unless (defined @{"${ic}::ISA"}) {
 	# Try to load it
 	($module = $ic) =~ s,::,/,g;
@@ -99,11 +100,12 @@ sub load {
 
 sub support {
     my($self,%support) = @_;
-    my $class = $self->class;
+    my $class = ref $self || $self; 
     my($code,$db,$srv);
     foreach $srv (keys %support) {
+	no strict 'refs';
 	foreach $db (@{$support{$srv}}) {
-	    @{"${class}::${db}::${srv}::ISA"} = qq(${class}::${db}::_generic);
+	    @{"$class\:\:$db\:\:$srv\:\:ISA"} = qq($class\:\:$db\:\:_generic);
 	}
     }
 }
@@ -112,7 +114,7 @@ sub _check {
     my($self) = shift;
     foreach (@_) {
 	next if defined $self->{$_};
-	Carp::croak(sprintf "cannot construct new %s object without '%s'", $self->class, $_);
+	Carp::croak(sprintf "cannot construct new %s object without '%s'", ref $self || $self, $_);
     }
 }
 
@@ -127,8 +129,8 @@ sub _elem {
 #DBM stuff
 sub _tie {
     my($self, $key, $file) = @_;
-    printf STDERR "%s->_tie($file)\n", $self->class if $Debug;
-    tie(%{$self->{$key}}, $self->{_DBMPACK}, 
+    printf STDERR "%s->_tie($file)\n", ref $self || $self if $Debug;
+    tie(%{$self->{$key}}, $self->{'_DBMPACK'}, 
 	$file, @{$self}{qw(_FLAGS MODE)}) || Carp::croak("tie '$file' $!");    
 }
 
@@ -137,8 +139,8 @@ sub _untie {
     untie %{$self->{$key}};
 }
 
-%DBMFiles = ();
-%DBMFlags = (
+my(%DBMFiles) = ();
+my(%DBMFlags) = (
 	     GDBM => { 
 		 rwc => sub { GDBM_File::GDBM_WRCREAT() },
 		 rw  => sub { GDBM_File::GDBM_READER()|GDBM_File::GDBM_WRITER() },
@@ -162,38 +164,9 @@ sub _dbm_init {
 	$self->load($dbmpack) or Carp::croak("can't load '$dbmpack'");
     }
 
-    my($key,$mode) = @{$self}{qw(DBMF FLAGS)};
-    $key = "DEFAULT" unless defined $DBMFlags{$key};
-    if(defined $DBMFlags{$key}->{$mode}) {
-	$flags = &{$DBMFlags{$key}->{$mode}};
-    }
-
-    @{$self}{qw(_DBMPACK _FLAGS)} = ($dbmpack, $flags);
+    @{$self}{qw(_DBMPACK _FLAGS)} = ($dbmpack, $self->flags);
     1;
 }
-
-#stuff for Filehandles
-#From Symbol.pm, not everyone has 5.002 yet :-(
-#this dumps core with 5.001m
-#my $genpkg = "Symbol::";
-#my $genseq = 0;
-
-#sub gensym {
-#    my $name = "GEN" . $genseq++;
-#    local *{$genpkg . $name};
-#    \delete ${$genpkg}{$name};
-#}
-
-my $gensym = "DBSYM000";
-
-sub gensym {
-    #my $class = $_[0]->class;
-    my $class = "HTTPD::AdminBase";
-    *{"${class}::" . $gensym++};
-}
-
-
-sub ungensym {} #nah
 
 #stuff for locking
 #File::Lock would be nice to have standard
@@ -206,20 +179,20 @@ sub lock {
     return 1 unless $self->{LOCKING};
     $timeout = $timeout || 10;
     my $lock = pack($STRUCT,Fcntl::F_WRLCK(),0,0,0,0);
-    my($FH) = $self->{_LOCKFH} = $self->gensym;
+    my($FH) = $self->{'_LOCKFH'} = $self->gensym;
 
     unless($file = $file || "$self->{DB}.lock") {
 	Carp::croak("can't set lock, no file specified!");
     }
-    unless ( -w dirname($self->{_LOCKFILE} = $file)) {
+    unless ( -w dirname($self->{'_LOCKFILE'} = $file)) {
 	print STDERR "lock: can't write to '$file' ";
 	#for writing lock files under CGI and such
-	$self->{_LOCKFILE} = $file = 
+	$self->{'_LOCKFILE'} = $file = 
 	    sprintf "%s/%s-%s", $self->tmpdir(), "HTTPD", basename($file);
 	print STDERR "trying '$file' instead\n";
     }
 
-    $file =~ /^[^<>;|]+$/ or Carp::croak("Bad file name '$file'"); $file = $&; #untaint
+    $file =~ /^([^<>;|]+)$/ or Carp::croak("Bad file name '$file'"); $file = $1; #untaint
     
     open($FH, ">>$file") || Carp::croak("can't open '$file' $!");
     while(! fcntl($FH, Fcntl::F_SETLK(), $lock)) {
@@ -236,11 +209,11 @@ sub lock {
 sub unlock { 
     my($self) = @_;
     return 1 unless $self->{LOCKING};
-    my $FH = $self->{_LOCKFH};
+    my $FH = $self->{'_LOCKFH'};
     fcntl($FH, Fcntl::F_SETLK(), pack($STRUCT,Fcntl::F_UNLCK(),0,0,0,0));   
     close $FH;
-    unlink $self->{_LOCKFILE};
-    print STDERR "unlock-> $self->{_LOCKFILE}\n" if $Debug;
+    unlink $self->{'_LOCKFILE'};
+    print STDERR "unlock-> $self->{'_LOCKFILE'}\n" if $Debug;
     1;
 }
 
@@ -255,41 +228,34 @@ sub tmpdir {
     $self->{TMPDIR} = $dir;
 }
 
+sub import {}
+sub DESTROY {}
+sub class { ref $_[0] || $_[0] }
+sub readonly { shift->flags == Fcntl::O_RDONLY() }
 sub debug   { shift->_elem('DEBUG',   @_) }
 sub path    { shift->_elem('PATH',    @_) }
 sub locking { shift->_elem('LOCKING', @_) }
+sub flags { 
+    my($self, $mode) = @_; 
+    my $flags;
+    my $key = $self->{DBMF} || "DEFAULT";
+    $mode ||= $self->{FLAGS};
+    $self->{FLAGS} = $mode;
+    $key = "DEFAULT" unless defined $DBMFlags{$key};
+    if(defined $DBMFlags{$key}->{$mode}) {
+	$flags = &{$DBMFlags{$key}->{$mode}};
+    }
+    return $flags;
+}
+#fallback, only implemented with DBType => Text
+sub commit {}
 
-#AUTOLOAD {
-#    my ($package, $method) = $AUTOLOAD =~ /(.*)::(.+)$/g;
-#    my $elem = uc $method;
-#    if(exists $_[0]->{$elem}) {
-#	eval "sub $AUTOLOAD { shift->_elem($elem, \@_); }";
-#	#*{$AUTOLOAD} = sub { shift->_elem($elem, @_); };
-#	print STDERR "AUTOLOAD: sub $AUTOLOAD {}\n" if $Debug;
-#	goto &$AUTOLOAD;
-#    }
-#    else {
-#	croak qq(Can't locate object method "$method" via package "$package");
-#    }
-#}
-
-#grumble, need $obj->isa();
 sub baseclass {
     my($self, $n) = @_;
-    join '::', (split(/::/, $self->class))[0 .. $n - 1];
+    my $class = join '::', (split(/::/, (ref $self || $self)))[0 .. $n - 1];
+    #print "baseclass got '$class' from '$self'\n";
+    $class;
 }
-
-#from UNIVERSAL.pm - [JACKS  Jack Shirazi <JackS@slc.com>]
-#someday we'll just say
-#require UNIVERSAL;
-
-package UNIVERSAL;
-
-sub FileHandle::is_instance {$_[0] ne 'FileHandle'}
-sub FileHandle::class {'FileHandle'}
-
-sub is_instance {ref($_[0]) ? 1 : ''}
-sub class {ref($_[0]) || $_[0]}
 
 1;
 
