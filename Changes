@@ -1,0 +1,35 @@
+v0.52, March 18, 1996
+
+Fixed support for Apache DBM group files. 
+Thanks to Julian Anderson <Julian.Anderson@Comp.VUW.AC.NZ>
+for pointing out the problem.
+
+v0.51, March 10, 1996
+
+Added HTTPD::Authen module.
+
+Added support for Message Digest Authenication using MD5
+
+Added password() method to UserAdmin
+
+New attributes, for flags and file creation mode, now present for working with
+DBM files.
+
+New attribute, Encrypt so we can use 'crypt' or 'MD5'.
+
+Now passes -T taint checks
+
+Included 'bhtpasswd', example script for batch updates.
+
+Changes to the example CGI script
+
+Modified locking mechanism for success under CGI
+
+Some general optimizing, much of which was based on what DProf says
+
+Realized not all DBI drivers conform to the spec for DBI->connect(),
+added a temporary work-around.
+
+v0.50, February 8, 1996
+
+Initial version

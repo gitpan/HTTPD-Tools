@@ -1,0 +1,55 @@
+Read This:
+http://www.cerf.net/~paulp/cgi-security/safe-cgi.txt
+
+And This:
+http://www-genome.wi.mit.edu/WWW/faqs/www-security-faq.html
+
+If you haven't already.
+
+---------------------------------
+
+Basic Authentication:
+
+This is *NOT* a secure mechanism.
+
+See the following for more info:
+http://www.w3.org/hypertext/WWW/Protocols/HTTP1.0/draft-ietf-http-spec.html
+http://www.w3.org/hypertext/WWW/AccessAuthorization/Overview.html
+
+---------------------------------
+
+Message Digest Authentication:
+
+This is much better that Basic authentication.
+
+See the following for more info:
+http://hopf.math.nwu.edu/digestauth/draft.rfc
+http://hoohoo.ncsa.uiuc.edu/docs/howto/md5_auth.html
+
+---------------------------------
+
+Updating a password file via CGI:
+* Use your best judgement here *
+
+The example script requires the CGI::* modules.
+
+To use the example 'htpasswd.pl' script, modify the "config" file in this directory
+to suit your needs.  As is, the script picks-up the config file via the
+CGI environment variable PATH_INFO, which must be a file relative to your
+servers document root so, PATH_TRANSLATED is where the file really lives.
+This may not be ideal, if your worried about someone seeing that info.  
+There are 3 solutions here:
+1. Place your config info after the __END__ token in the script.
+2. Edit the script to suit your needs
+3. Don't use the script at all
+
+
+---------------------------------
+
+Read This:
+http://www.cerf.net/~paulp/cgi-security/safe-cgi.txt
+
+And This:
+http://www-genome.wi.mit.edu/WWW/faqs/www-security-faq.html
+
+If you haven't already.

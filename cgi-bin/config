@@ -1,0 +1,13 @@
+#Sample config file for htpasswd.pl
+#Notice, most of these are the same Key => Value pairs you would
+#use to create a new UserAdmin object
+
+User    DB      /full/path/to/database_name
+User    DBType  DBM
+User    Server  apache
+
+#Using MD5 will also make an extra form field for the 'realm'
+#User	Encrypt MD5
+
+#un-comment this when your browser has trouble handling all that list markup
+#User    List    off

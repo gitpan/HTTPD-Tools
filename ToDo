@@ -1,0 +1,77 @@
+o Traditional HTTPD text database tools such as NCSA's htpasswd read through
+  the entire text file, copy to a temp file, then copy the temp file over 
+  your database.  This is not ideal.  Nor is slurping the entire database into
+  memory.  Some tie() magic is on the way with Tie::HashFile...
+
+--
+
+o Put together a nicer interface for digest passwords
+
+--
+
+o Add support for more servers user & group databases
+  If your server does not fit into this matrix:
+
+User Databases:
+Server         DBM  Text   SQL
+cern                 x       
+apache          x    x      x
+netscape        x            
+ncsa            x    x       
+
+Group Databases:
+cern                 x       
+apache          x    x       
+ncsa            x    x     
+
+Test without a 'Server' attribute, your server may use
+the "traditional" format of NCSA, Apache, and others.
+If you succeed, please let me know.
+
+Otherwise, fill out this form and mail it to me (dougm@osf.org)
+
+--
+Server name:
+Server version:
+
+User databases:
+
+   Text [ ]
+        Format: (e.g.) "username:password\n"
+
+   DBM  [ ]
+        Implementation: NDBM [ ] GDBM [ ] Others [       ]
+        Format: (e.g.) KEY   -> "username"
+                       VALUE -> "password"
+
+   SQL  [ ]
+        Interface to: mSQL [ ] Oracle [ ] Sybase [ ] Others [       ]
+        Schema:
+
+Group databases:
+   Text [ ]
+        Format: (e.g.) "group: username, username, username\n"
+
+   DBM  [ ]
+        Implementation: NDBM [ ] GDBM [ ] Others [       ]
+        Format: (e.g.) KEY   -> "group"
+                       VALUE -> "username, username, username"
+
+   SQL  [ ]
+        Interface to: mSQL [ ] Oracle [ ] Sybase [ ] Others [       ]
+        Schema:
+
+URL to user/group management documentation:
+--
+
+o Work on HTTPD::Authen some more
+
+o HTTPD::Access - Management of server access control files
+
+o HTTPD::Conf - Management of server configuration files
+
+o Complete forms management interface
+
+o Think about Perl/Tk management interface
+
+o See if we can gain much with autoloading
